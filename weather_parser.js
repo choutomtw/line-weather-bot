@@ -8,15 +8,15 @@ function parseWeatherData(jsonData, locationName) {
   }
 
   // 2. 安全讀取陣列，避免發生 undefined[0] 錯誤
-  const countyArray = jsonData.records.locations;
+  const countyArray = jsonData.records.Locations;
   if (!countyArray || countyArray.length === 0) {
     console.error("[資料結構錯誤] 實際的 records 內容：", JSON.stringify(jsonData.records).substring(0, 300));
-    throw new Error('氣象署回傳的資料結構中找不到 locations 陣列。');
+    throw new Error('氣象署回傳的資料結構中找不到 Locations 陣列。');
   }
 
   // 3. 尋找目標鄉鎮
-  const locationsArray = countyArray[0].location;
-  const targetLocationData = locationsArray.find(loc => loc.locationName === locationName);
+  const locationsArray = countyArray[0].Location;
+  const targetLocationData = locationsArray.find(loc => loc.LocationName === locationName);
 
   if (!targetLocationData) {
     throw new Error(`氣象資料庫中找不到「${locationName}」的資料。`);
