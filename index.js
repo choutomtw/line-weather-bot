@@ -18,17 +18,8 @@ const client = new messagingApi.MessagingApiClient({
 const app = express();
 const processedEvents = new Set();
 
-// 增強版地區映射表（自動轉換簡稱與預設值）
-const locationMapping = {
-  '高雄': { apiId: 'F-D0047-065', realName: '左營區' },   // 預設高雄抓左營
-  '高雄市': { apiId: 'F-D0047-065', realName: '左營區' },
-  '左營': { apiId: 'F-D0047-065', realName: '左營區' },
-  '左營區': { apiId: 'F-D0047-065', realName: '左營區' },
-  '旗津': { apiId: 'F-D0047-065', realName: '旗津區' },
-  '旗津區': { apiId: 'F-D0047-065', realName: '旗津區' },
-  '蘇澳': { apiId: 'F-D0047-001', realName: '蘇澳鎮' },
-  '蘇澳鎮': { apiId: 'F-D0047-001', realName: '蘇澳鎮' }
-};
+// 在 index.js 頂端引入我們剛寫好的字典檔
+const { locationMapping } = require('./locations');
 
 // 抓取即時氣象資料
 async function getLiveWeatherData(apiId) {
@@ -71,7 +62,8 @@ async function handleEvent(event) {
       const mappedData = locationMapping[userInput];
       
       if (!mappedData) {
-        throw new Error('目前未支援此地區。請輸入：/氣象-高雄(左營、旗津或蘇澳)');
+        // 更新錯誤提示，避免列出所有地區導致訊息過長
+        throw new Error('目前尚未支援或找不到此地區。請輸入具體的行政區名稱，例如：/氣象-左營 或 /氣象-蘇澳鎮');
       }
 
       // 2. 使用對應的 apiId 抓取資料
