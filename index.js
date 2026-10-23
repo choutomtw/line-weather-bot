@@ -18,22 +18,22 @@ const client = new messagingApi.MessagingApiClient({
 const app = express();
 const processedEvents = new Set();
 
-// 建立地區與對應 API ID 的字典結構
-const locationApiMap = {
-  '旗津區': 'F-D0047-065',
-  '左營區': 'F-D0047-065',
-  '蘇澳鎮': 'F-D0047-001'
+// 增強版地區映射表（自動轉換簡稱與預設值）
+const locationMapping = {
+  '高雄': { apiId: 'F-D0047-065', realName: '左營區' },   // 預設高雄抓左營
+  '高雄市': { apiId: 'F-D0047-065', realName: '左營區' },
+  '左營': { apiId: 'F-D0047-065', realName: '左營區' },
+  '左營區': { apiId: 'F-D0047-065', realName: '左營區' },
+  '旗津': { apiId: 'F-D0047-065', realName: '旗津區' },
+  '旗津區': { apiId: 'F-D0047-065', realName: '旗津區' },
+  '蘇澳': { apiId: 'F-D0047-001', realName: '蘇澳鎮' },
+  '蘇澳鎮': { apiId: 'F-D0047-001', realName: '蘇澳鎮' }
 };
 
-async function getLiveWeatherData(locationName) {
-  const datasetId = locationApiMap[locationName];
-  
-  if (!datasetId) {
-    throw new Error('目前未支援此地區。請輸入：旗津區、左營區 或 蘇澳鎮');
-  }
-
+// 抓取即時氣象資料
+async function getLiveWeatherData(apiId) {
   const API_KEY = process.env.CWA_API_KEY;
-  const URL = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${datasetId}?Authorization=${API_KEY}&format=JSON`;
+  const URL = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${apiId}?Authorization=${API_KEY}&format=JSON`;
   const response = await axios.get(URL);
   return response.data;
 }
@@ -63,21 +63,32 @@ async function handleEvent(event) {
   const userMessage = event.message.text.trim();
 
   if (userMessage.startsWith('/氣象-')) {
-    const locationName = userMessage.substring(4).trim();
-    console.log(`[指令觸發] 目標地區：${locationName}`);
+    const userInput = userMessage.substring(4).trim(); // 取得使用者輸入的字眼
+    console.log(`[指令觸發] 使用者輸入：${userInput}`);
 
     try {
-      const jsonData = await getLiveWeatherData();
-      const weatherData = parseWeatherData(jsonData, locationName);
-      const replyText = formatWeatherMessage(locationName, weatherData);
+      // 1. 從字典尋找對應的設定
+      const mappedData = locationMapping[userInput];
       
-      // 替換為新版 SDK 的回覆格式
+      if (!mappedData) {
+        throw new Error('目前未支援此地區。請輸入：/氣象-高雄(左營、旗津或蘇澳)');
+      }
+
+      // 2. 使用對應的 apiId 抓取資料
+      const jsonData = await getLiveWeatherData(mappedData.apiId);
+      
+      // 3. 使用真實名稱 (realName) 讓 parser 去解析
+      const weatherData = parseWeatherData(jsonData, mappedData.realName);
+      
+      // 4. 格式化訊息並回覆
+      const replyText = formatWeatherMessage(mappedData.realName, weatherData);
+      
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{ type: 'text', text: replyText }]
       });
     } catch (error) {
-      console.error(`[錯誤] 處理 ${locationName} 時發生錯誤：`, error.message);
+      console.error(`[錯誤] 處理 ${userInput} 時發生錯誤：`, error.message);
       return client.replyMessage({
         replyToken: event.replyToken,
         messages: [{ type: 'text', text: error.message || '發生未知錯誤，請稍後再試。' }]
