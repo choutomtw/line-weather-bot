@@ -1,31 +1,15 @@
 // weather_parser.js
-const { supportedLocations } = require('./locations');
 
 function parseWeatherData(jsonData, locationName) {
-  const locInfo = supportedLocations[locationKey];
-  if (!locInfo) {
-    throw new Error(`找不到這個地區，請輸入 /氣象-高雄 或其他支援地區。`);
-  }
-
+  // 直接從 API 回傳的資料中尋找該鄉鎮區
   const locationsArray = jsonData.records.locations[0].location;
   const targetLocationData = locationsArray.find(loc => loc.locationName === locationName);
-  let targetTownData = null;
-
-  for (const countyData of locationsArray) {
-    if (countyData.LocationsName === locInfo.county) {
-      const townData = countyData.Location.find(t => t.LocationName === locInfo.town);
-      if (townData) {
-        targetTownData = townData;
-        break;
-      }
-    }
-  }
 
   if (!targetLocationData) {
-    throw new Error(`氣象資料庫中找不到「${locationName}」的預報資料。`);
+    throw new Error(`氣象資料庫中找不到「${locationName}」的資料，請確認名稱是否正確。`);
   }
 
-  const weatherElements = targetTownData.WeatherElement;
+  const weatherElements = targetLocationData.WeatherElement;
   
   // 這裡改為比對中文欄位名稱
   const tData = weatherElements.find(e => e.ElementName === '溫度')?.Time || [];
