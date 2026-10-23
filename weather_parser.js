@@ -1,13 +1,28 @@
 // weather_parser.js
 
 function parseWeatherData(jsonData, locationName) {
-  // 直接從 API 回傳的資料中尋找該鄉鎮區
-  const locationsArray = jsonData.records.locations[0].location;
+  // 1. 檢查 API 是否回傳異常（例如金鑰失效、額度用盡）
+  if (!jsonData || !jsonData.records) {
+    console.error("[API 回傳異常] 實際收到的資料：", JSON.stringify(jsonData));
+    throw new Error('氣象署 API 連線異常，請查看伺服器日誌。');
+  }
+
+  // 2. 安全讀取陣列，避免發生 undefined[0] 錯誤
+  const countyArray = jsonData.records.locations;
+  if (!countyArray || countyArray.length === 0) {
+    console.error("[資料結構錯誤] 實際的 records 內容：", JSON.stringify(jsonData.records).substring(0, 300));
+    throw new Error('氣象署回傳的資料結構中找不到 locations 陣列。');
+  }
+
+  // 3. 尋找目標鄉鎮
+  const locationsArray = countyArray[0].location;
   const targetLocationData = locationsArray.find(loc => loc.locationName === locationName);
 
   if (!targetLocationData) {
-    throw new Error(`氣象資料庫中找不到「${locationName}」的資料，請確認名稱是否正確。`);
+    throw new Error(`氣象資料庫中找不到「${locationName}」的資料。`);
   }
+
+  // 下方繼續保留原本的溫度、濕度、降雨解析邏輯...
 
   const weatherElements = targetLocationData.WeatherElement;
   
