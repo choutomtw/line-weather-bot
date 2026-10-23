@@ -18,9 +18,22 @@ const client = new messagingApi.MessagingApiClient({
 const app = express();
 const processedEvents = new Set();
 
-async function getLiveWeatherData() {
+// 建立地區與對應 API ID 的字典結構
+const locationApiMap = {
+  '旗津區': 'F-D0047-065',
+  '左營區': 'F-D0047-065',
+  '蘇澳鎮': 'F-D0047-001'
+};
+
+async function getLiveWeatherData(locationName) {
+  const datasetId = locationApiMap[locationName];
+  
+  if (!datasetId) {
+    throw new Error('目前未支援此地區。請輸入：旗津區、左營區 或 蘇澳鎮');
+  }
+
   const API_KEY = process.env.CWA_API_KEY;
-  const URL = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-065?Authorization=${API_KEY}&format=JSON`;
+  const URL = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${datasetId}?Authorization=${API_KEY}&format=JSON`;
   const response = await axios.get(URL);
   return response.data;
 }

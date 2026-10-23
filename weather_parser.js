@@ -1,13 +1,14 @@
 // weather_parser.js
 const { supportedLocations } = require('./locations');
 
-function parseWeatherData(jsonData, locationKey) {
+function parseWeatherData(jsonData, locationName) {
   const locInfo = supportedLocations[locationKey];
   if (!locInfo) {
     throw new Error(`找不到這個地區，請輸入 /氣象-高雄 或其他支援地區。`);
   }
 
-  const locationsArray = jsonData.records.Locations;
+  const locationsArray = jsonData.records.locations[0].location;
+  const targetLocationData = locationsArray.find(loc => loc.locationName === locationName);
   let targetTownData = null;
 
   for (const countyData of locationsArray) {
@@ -20,8 +21,8 @@ function parseWeatherData(jsonData, locationKey) {
     }
   }
 
-  if (!targetTownData) {
-    throw new Error(`無法取得 ${locInfo.county} ${locInfo.town} 的預報資料。`);
+  if (!targetLocationData) {
+    throw new Error(`氣象資料庫中找不到「${locationName}」的預報資料。`);
   }
 
   const weatherElements = targetTownData.WeatherElement;
